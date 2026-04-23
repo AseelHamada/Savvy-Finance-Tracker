@@ -2,13 +2,14 @@
 class FinanceTracker {
     constructor() {
         this.transactions = this.loadTransactions();
-        this.recycleBin = this.loadRecycleBin();
+        this.recycleBin = JSON.parse(localStorage.getItem('savvy_recycleBin')) || [];
         this.spendingChart = null;
         this.dailyChart = null;
         this.yearlyChart = null;
         this.currentFilter = 'full';
         this.editingId = null;
         this.confirmCallback = null;
+        window.tracker = this; // Global access
         this.init();
     }
 
@@ -18,7 +19,7 @@ class FinanceTracker {
         this.updateSummary();
         this.renderTransactions();
         this.updateCharts();
-        this.checkBalanceWarning();
+        this.checkFinancialDangerZone();
         this.cleanupRecycleBin();
     }
 
@@ -33,21 +34,26 @@ class FinanceTracker {
 
     // Local Storage Management
     loadTransactions() {
-        const stored = localStorage.getItem('financeTransactions');
+        const stored = localStorage.getItem('savvy_transactions');
         return stored ? JSON.parse(stored) : [];
     }
 
     saveTransactions() {
-        localStorage.setItem('financeTransactions', JSON.stringify(this.transactions));
+        localStorage.setItem('savvy_transactions', JSON.stringify(this.transactions));
     }
 
     loadRecycleBin() {
-        const stored = localStorage.getItem('financeRecycleBin');
+        const stored = localStorage.getItem('savvy_recycleBin');
         return stored ? JSON.parse(stored) : [];
     }
 
     saveRecycleBin() {
-        localStorage.setItem('financeRecycleBin', JSON.stringify(this.recycleBin));
+        localStorage.setItem('savvy_recycleBin', JSON.stringify(this.recycleBin));
+    }
+
+    saveData() {
+        localStorage.setItem('savvy_transactions', JSON.stringify(this.transactions));
+        localStorage.setItem('savvy_recycleBin', JSON.stringify(this.recycleBin));
     }
 
     // Event Listeners
@@ -91,7 +97,7 @@ class FinanceTracker {
         ));
 
         // Toggle bin view
-        toggleBin.addEventListener('click', () => this.showBinView());
+        toggleBin.addEventListener('click', () => this.showEnhancedRecycleBin());
         toggleTransactions.addEventListener('click', () => this.showTransactionsView());
 
         // Edit form
@@ -102,10 +108,12 @@ class FinanceTracker {
         document.getElementById('editCancel').addEventListener('click', () => this.hideModal('editModal'));
         document.getElementById('modalConfirm').addEventListener('click', () => {
             if (this.confirmCallback) {
-                this.confirmCallback();
+                this.confirmCallback(); // Executes the deletion logic defined above
                 this.hideModal('confirmModal');
+                this.confirmCallback = null; // Reset for future actions
             }
         });
+        document.getElementById('closeRecycleBin').addEventListener('click', () => this.hideModal('recycleBinModal'));
 
         // Danger alert close
         closeDangerAlert.addEventListener('click', () => this.hideDangerAlert());
@@ -114,94 +122,105 @@ class FinanceTracker {
     // Transaction Management
     handleAddTransaction(e) {
         e.preventDefault();
-        
         const formData = new FormData(e.target);
-        let category = formData.get('category');
-        
-        // Handle custom category
-        if (category === 'custom') {
-            category = formData.get('customCategory');
-        }
-
-        const description = formData.get('description');
+        let category = formData.get('category') === 'custom' ? formData.get('customCategory') : formData.get('category');
+        const description = formData.get('description').trim();
         const amount = parseFloat(formData.get('amount'));
         const type = formData.get('type');
 
-        // Check for duplicate transaction (same description AND same category)
+        // THE STRICT MATCH: Same Description AND Same Category AND Same Type
         const duplicateIndex = this.transactions.findIndex(t => 
-            t.description.toLowerCase().trim() === description.toLowerCase().trim() && 
-            t.category.toLowerCase().trim() === category.toLowerCase().trim()
+            t.description.toLowerCase() === description.toLowerCase() && 
+            t.category.toLowerCase() === category.toLowerCase() &&
+            t.type === type
         );
 
         if (duplicateIndex !== -1) {
-            // Update existing transaction instead of creating new one
-            const existingTransaction = this.transactions[duplicateIndex];
-            existingTransaction.amount += amount;
-            existingTransaction.date = new Date().toISOString(); // Update last modified date
-            
-            this.saveTransactions();
-            this.updateUI();
-            this.highlightTransaction(existingTransaction.id);
-            this.showToast('Transaction merged successfully!');
+            // Update existing
+            this.transactions[duplicateIndex].amount += amount;
+            this.transactions[duplicateIndex].date = new Date().toISOString();
+            this.showToast('Existing transaction updated (Merged)!');
         } else {
-            // Create new transaction
+            // Add new
             const transaction = {
                 id: Date.now(),
-                description: description,
-                amount: amount,
-                category: category,
-                type: type,
+                description,
+                amount,
+                category,
+                type,
                 date: new Date().toISOString()
             };
-
             this.transactions.unshift(transaction);
-            this.saveTransactions();
-            this.updateUI();
-            this.showToast('Transaction added successfully!');
+            this.showToast('New transaction added!');
         }
 
-        // Check financial danger zone for expenses
-        if (type === 'expense') {
-            this.checkFinancialDangerZone();
-        }
-
-        e.target.reset();
+        this.saveData();
+        this.updateUI();
         
-        // Reset custom category input
+        e.target.reset();
         document.getElementById('customCategory').style.display = 'none';
-        document.getElementById('customCategory').required = false;
     }
 
     editTransaction(id) {
         const transaction = this.transactions.find(t => t.id === id);
-        if (!transaction) return;
-
-        this.editingId = id;
-        document.getElementById('editDescription').value = transaction.description;
-        this.showModal('editModal');
+        if (transaction) {
+            this.editingId = id;
+            document.getElementById('editDescription').value = transaction.description;
+            document.getElementById('editAmount').value = transaction.amount;
+            document.getElementById('editModal').style.display = 'block'; 
+        }
     }
 
     handleEditTransaction(e) {
         e.preventDefault();
         
         const description = document.getElementById('editDescription').value;
+        const amount = parseFloat(document.getElementById('editAmount').value);
         
         const transactionIndex = this.transactions.findIndex(t => t.id === this.editingId);
         if (transactionIndex !== -1) {
             this.transactions[transactionIndex].description = description;
-            this.saveTransactions();
+            this.transactions[transactionIndex].amount = amount;
+            
+            // 1. Save data to localStorage
+            this.saveData();
+            
+            // 2. Update UI (recalculates dashboard totals)
             this.updateUI();
+            
+            // 3. Update charts (refresh visual data)
+            this.updateCharts();
+            
+            // 4. Render transactions (update the list)
+            this.renderTransactions();
+            
+            // 5. Close the modal
             this.hideModal('editModal');
+            
             this.showToast('Transaction updated successfully!');
         }
     }
 
     deleteTransaction(id) {
-        this.showConfirmModal(
-            'Delete Transaction',
-            'Are you sure you want to delete this transaction?',
-            () => this.moveToRecycleBin(id)
-        );
+        const modal = document.getElementById('confirmModal');
+        modal.style.display = 'block';
+
+        document.getElementById('modalTitle').textContent = 'Confirm Deletion';
+        document.getElementById('modalMessage').textContent = 'Are you sure you want to move this item to the Recycle Bin?';
+
+        // Store the action to be executed only when the user confirms
+        this.confirmCallback = () => {
+            const index = this.transactions.findIndex(t => t.id === id);
+            if (index !== -1) {
+                const deletedItem = this.transactions.splice(index, 1)[0];
+                deletedItem.deletedAt = new Date().toISOString();
+                this.recycleBin.push(deletedItem);
+                
+                this.saveData();
+                this.updateUI();
+                this.showToast('Moved to Recycle Bin');
+            }
+        };
     }
 
     moveToRecycleBin(id) {
@@ -233,10 +252,21 @@ class FinanceTracker {
     }
 
     clearAllTransactions() {
+        // Move all transactions to recycleBin first
+        const now = new Date().toISOString();
+        this.transactions.forEach(transaction => {
+            transaction.deletedAt = now;
+            this.recycleBin.push(transaction);
+        });
+        
+        // Clear the main transactions array
         this.transactions = [];
-        this.saveTransactions();
+        
+        // Save data and update UI
+        this.saveData();
         this.updateUI();
-        this.showToast('All transactions cleared');
+        this.renderEnhancedRecycleBin();
+        this.showToast('All transactions moved to Recycle Bin');
     }
 
     // UI Updates
@@ -244,7 +274,7 @@ class FinanceTracker {
         this.updateSummary();
         this.renderTransactions();
         this.updateCharts();
-        this.checkBalanceWarning();
+        this.checkFinancialDangerZone();
     }
 
     updateSummary() {
@@ -380,10 +410,10 @@ class FinanceTracker {
         // Filter transactions based on time filter
         const filteredTransactions = this.getFilteredTransactions();
         
-        // Get expense data by category
+        // Get expense data by category (exclude salary)
         const expensesByCategory = {};
         filteredTransactions
-            .filter(t => t.type === 'expense')
+            .filter(t => t.type === 'expense' && t.category !== 'salary')
             .forEach(transaction => {
                 if (!expensesByCategory[transaction.category]) {
                     expensesByCategory[transaction.category] = 0;
@@ -794,32 +824,99 @@ class FinanceTracker {
         this.saveRecycleBin();
     }
 
-    checkBalanceWarning() {
-        const income = this.transactions
-            .filter(t => t.type === 'income')
-            .reduce((sum, t) => sum + t.amount, 0);
-        
-        const expenses = this.transactions
-            .filter(t => t.type === 'expense')
-            .reduce((sum, t) => sum + t.amount, 0);
-        
-        const balance = income - expenses;
-        
-        if (balance < 500 && balance > 0) {
-            this.showToast('⚠️ Careful! You are about to finish your salary!', 'warning');
+    checkFinancialDangerZone() {
+        // Remove any existing alert first to be sure
+        const oldAlert = document.getElementById('dangerAlert');
+        if (oldAlert) oldAlert.remove();
+
+        const totalIncome = this.transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+        const totalExpenses = this.transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+
+        // The condition: Only if income exists AND expenses >= 95%
+        if (totalIncome > 0 && totalExpenses >= (totalIncome * 0.95)) {
+            const alertDiv = document.createElement('div');
+            alertDiv.id = 'dangerAlert';
+            alertDiv.className = 'danger-alert show';
+            alertDiv.innerHTML = '⚠️ Warning: You have spent 95% of your income!';
+            document.body.appendChild(alertDiv);
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => { if(alertDiv) alertDiv.remove(); }, 5000);
         }
     }
 
     // View Management
     showTransactionsView() {
-        document.getElementById('transactionsSection').style.display = 'block';
-        document.getElementById('binSection').style.display = 'none';
+        const transactionsSection = document.getElementById('transactionsSection');
+        const binSection = document.getElementById('binSection');
+        
+        if (transactionsSection) {
+            transactionsSection.style.display = 'block';
+        }
+        if (binSection) {
+            binSection.style.display = 'none';
+        }
     }
 
     showBinView() {
-        document.getElementById('transactionsSection').style.display = 'none';
-        document.getElementById('binSection').style.display = 'block';
+        const transactionsSection = document.getElementById('transactionsSection');
+        const binSection = document.getElementById('binSection');
+        
+        if (transactionsSection) {
+            transactionsSection.style.display = 'none';
+        }
+        if (binSection) {
+            binSection.style.display = 'block';
+        }
         this.renderRecycleBin();
+    }
+
+    showEnhancedRecycleBin() {
+        const modal = document.getElementById('recycleBinModal');
+        this.renderEnhancedRecycleBin();
+        modal.style.display = 'block';
+    }
+
+    renderEnhancedRecycleBin() {
+        const container = document.getElementById('recycleBinList');
+        if (this.recycleBin.length === 0) {
+            container.innerHTML = '<p style="text-align:center; padding:20px;">Recycle Bin is empty</p>';
+            return;
+        }
+
+        container.innerHTML = this.recycleBin.map(t => `
+    <div class="recycle-bin-item" style="background-color: #1976D2 !important; background: #1976D2 !important; color: white !important; padding: 20px !important; margin-bottom: 15px !important; border-radius: 12px !important; display: flex !important; justify-content: space-between; align-items: center; border: none !important;">
+        <div class="recycle-bin-info">
+            <h4 style="color: white !important; margin: 0;">${this.escapeHtml(t.description)}</h4>
+            <p style="color: rgba(255, 255, 255, 0.9) !important; margin: 5px 0 0;">${t.category} - ${this.formatCurrency(t.amount)}</p>
+        </div>
+        <div class="recycle-bin-actions" style="display: flex; gap: 10px;">
+            <button class="btn-restore" onclick="tracker.restoreTransaction(${t.id})" style="background: white !important; color: #1976D2 !important; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer;">Restore</button>
+            <button class="btn-permanent-delete" onclick="tracker.permanentlyDelete(${t.id})" style="background: #4A148C !important; color: white !important; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer;">Delete</button>
+        </div>
+    </div>
+`).join('');
+    }
+
+    restoreTransaction(id) {
+        const index = this.recycleBin.findIndex(t => t.id === id);
+        if (index !== -1) {
+            const item = this.recycleBin.splice(index, 1)[0];
+            delete item.deletedAt; // Remove deletion timestamp
+            this.transactions.unshift(item); // Add back to top
+            
+            this.saveData();
+            this.updateUI();
+            this.renderEnhancedRecycleBin(); // Refresh bin view
+            this.showToast('Transaction restored!');
+        }
+    }
+
+    permanentlyDelete(id) {
+        this.recycleBin = this.recycleBin.filter(t => t.id !== id);
+        this.saveData();
+        this.renderEnhancedRecycleBin();
+        this.showToast('Item deleted permanently');
     }
 
     // Modal Management
@@ -866,10 +963,6 @@ class FinanceTracker {
     }
 
     checkFinancialDangerZone() {
-        const totalSalary = this.transactions
-            .filter(t => t.type === 'income' && t.category.toLowerCase() === 'salary')
-            .reduce((sum, t) => sum + t.amount, 0);
-        
         const totalIncome = this.transactions
             .filter(t => t.type === 'income')
             .reduce((sum, t) => sum + t.amount, 0);
@@ -877,18 +970,19 @@ class FinanceTracker {
         const totalExpenses = this.transactions
             .filter(t => t.type === 'expense')
             .reduce((sum, t) => sum + t.amount, 0);
-        
-        const remainingBalance = totalIncome - totalExpenses;
-        
-        // Use total salary if available, otherwise use total income
-        const referenceAmount = totalSalary > 0 ? totalSalary : totalIncome;
-        
-        if (referenceAmount > 0) {
-            const remainingPercentage = (remainingBalance / referenceAmount) * 100;
-            
-            if (remainingPercentage < 5 && remainingPercentage > 0) {
-                this.showDangerAlert('5% Rule: You have less than 5% of your salary remaining!');
+
+        // Condition: Only show if we have income AND expenses reached 95% of that income
+        if (totalIncome > 0 && totalExpenses >= (totalIncome * 0.95)) {
+            const dangerMsg = document.getElementById('dangerMessage');
+            const dangerAlert = document.getElementById('dangerAlert');
+            if (dangerMsg && dangerAlert) {
+                dangerMsg.textContent = 'Warning: You have spent 95% of your total income!';
+                dangerAlert.classList.add('show');
             }
+        } else {
+            // Hide it if the condition is not met
+            const dangerAlert = document.getElementById('dangerAlert');
+            if (dangerAlert) dangerAlert.classList.remove('show');
         }
     }
 

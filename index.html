@@ -3,38 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Savvy</title>
+    <title>Personal Finance Tracker</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;600;700&family=Segoe+UI:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
+    <div id="dangerAlert" class="danger-alert">
+        <span id="dangerMessage"></span>
+        <button id="closeDangerAlert" style="background:none; border:none; color:white; cursor:pointer; margin-left:10px;">✕</button>
+    </div>
     <div class="container">
         <!-- Header -->
         <header class="header">
-            <div class="header-waves">
-                <svg class="wave wave1" viewBox="0 0 1200 120" preserveAspectRatio="none">
-                    <path d="M0,56 C150,100 350,0 600,56 C850,112 1050,0 1200,56 L1200,120 L0,120 Z" 
-                          fill="rgba(156, 39, 176, 0.3)"></path>
-                </svg>
-                <svg class="wave wave2" viewBox="0 0 1200 120" preserveAspectRatio="none">
-                    <path d="M0,64 C200,120 400,0 600,64 C800,128 1000,0 1200,64 L1200,120 L0,120 Z" 
-                          fill="rgba(33, 150, 243, 0.3)"></path>
-                </svg>
-                <svg class="wave wave3" viewBox="0 0 1200 120" preserveAspectRatio="none">
-                    <path d="M0,48 C180,96 320,0 600,48 C880,96 1020,0 1200,48 L1200,120 L0,120 Z" 
-                          fill="rgba(225, 190, 231, 0.3)"></path>
-                </svg>
-            </div>
-            <div class="header-glow"></div>
             <div class="header-content">
-                <div class="header-text">
-                    <h1 class="title">Savvy</h1>
-                    <p class="subtitle">Manage your income and expenses with style</p>
-                </div>
+                <h1 class="title">Personal Finance Tracker</h1>
+                <p class="subtitle">Manage your income and expenses with style</p>
             </div>
         </header>
 
@@ -116,12 +99,12 @@
                                         <label class="radio-label">
                                             <input type="radio" name="type" value="income" required>
                                             <span class="radio-custom"></span>
-                                            <span>Income</span>
+                                            Income
                                         </label>
                                         <label class="radio-label">
                                             <input type="radio" name="type" value="expense" required>
                                             <span class="radio-custom"></span>
-                                            <span>Expense</span>
+                                            Expense
                                         </label>
                                     </div>
                                 </div>
@@ -184,7 +167,7 @@
                     <div class="card-header">
                         <h2 class="card-title">Recent Transactions</h2>
                         <div class="header-actions">
-                            <button id="toggleBin" class="btn-secondary">Recycle Bin</button>
+                            <button id="toggleBin" class="btn-secondary" onclick="tracker.showEnhancedRecycleBin()">Recycle Bin</button>
                             <button id="clearAll" class="btn-secondary">Clear All</button>
                         </div>
                     </div>
@@ -242,6 +225,10 @@
                     <label for="editDescription">Description</label>
                     <input type="text" id="editDescription" required>
                 </div>
+                <div class="form-group">
+                    <label for="editAmount">Amount</label>
+                    <input type="number" id="editAmount" step="0.01" required>
+                </div>
                 <div class="modal-actions">
                     <button type="button" id="editCancel" class="btn-secondary">Cancel</button>
                     <button type="submit" class="btn-primary">Save Changes</button>
@@ -250,32 +237,25 @@
         </div>
     </div>
 
+    <!-- Enhanced Recycle Bin Modal -->
+    <div id="recycleBinModal" class="modal">
+        <div class="modal-content modal-large">
+            <h3>Recycle Bin</h3>
+            <div class="recycle-bin-list" id="recycleBinList">
+                <!-- Recycle bin items will be populated here -->
+            </div>
+            <div class="modal-actions">
+                <button type="button" id="closeRecycleBin" class="btn-secondary">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notification -->
     <div id="toast" class="toast">
         <span id="toastMessage"></span>
     </div>
 
-    <!-- Financial Danger Zone Alert -->
-    <div id="dangerAlert" class="danger-alert">
-        <div class="danger-alert-content">
-            <div class="danger-alert-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z"/>
-                </svg>
-            </div>
-            <div class="danger-alert-text">
-                <strong>Financial Warning!</strong>
-                <span id="dangerMessage">You are about to finish your salary!</span>
-            </div>
-            <button id="closeDangerAlert" class="danger-alert-close">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-            </button>
-        </div>
-    </div>
-
+    
     <script src="script.js"></script>
 </body>
 </html>
