@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Savvy</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;600;700&family=Segoe+UI:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-waves">
+                <svg class="wave wave1" viewBox="0 0 1200 120" preserveAspectRatio="none">
+                    <path d="M0,56 C150,100 350,0 600,56 C850,112 1050,0 1200,56 L1200,120 L0,120 Z" 
+                          fill="rgba(156, 39, 176, 0.3)"></path>
+                </svg>
+                <svg class="wave wave2" viewBox="0 0 1200 120" preserveAspectRatio="none">
+                    <path d="M0,64 C200,120 400,0 600,64 C800,128 1000,0 1200,64 L1200,120 L0,120 Z" 
+                          fill="rgba(33, 150, 243, 0.3)"></path>
+                </svg>
+                <svg class="wave wave3" viewBox="0 0 1200 120" preserveAspectRatio="none">
+                    <path d="M0,48 C180,96 320,0 600,48 C880,96 1020,0 1200,48 L1200,120 L0,120 Z" 
+                          fill="rgba(225, 190, 231, 0.3)"></path>
+                </svg>
+            </div>
+            <div class="header-glow"></div>
+            <div class="header-content">
+                <div class="header-text">
+                    <h1 class="title">Savvy</h1>
+                    <p class="subtitle">Manage your income and expenses with style</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Dashboard -->
+        <main class="dashboard">
+            <!-- Summary Cards -->
+            <section class="summary-section">
+                <div class="summary-grid">
+                    <div class="summary-card income-card">
+                        <div class="card-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                            </svg>
+                        </div>
+                        <div class="card-content">
+                            <h3>Total Income</h3>
+                            <p class="amount" id="totalIncome">$0.00</p>
+                        </div>
+                    </div>
+
+                    <div class="summary-card expense-card">
+                        <div class="card-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                            </svg>
+                        </div>
+                        <div class="card-content">
+                            <h3>Total Expenses</h3>
+                            <p class="amount" id="totalExpenses">$0.00</p>
+                        </div>
+                    </div>
+
+                    <div class="summary-card balance-card">
+                        <div class="card-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M12 6v6l4 2"/>
+                            </svg>
+                        </div>
+                        <div class="card-content">
+                            <h3>Balance</h3>
+                            <p class="amount" id="balance">$0.00</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Transaction Form and Chart -->
+            <section class="main-content">
+                <!-- Add Transaction Form -->
+                <div class="form-section">
+                    <div class="card">
+                        <h2 class="card-title">Add Transaction</h2>
+                        <form id="transactionForm" class="transaction-form">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="description">Description</label>
+                                    <input type="text" id="description" name="description" required placeholder="Enter description">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="amount">Amount</label>
+                                    <input type="number" id="amount" name="amount" step="0.01" required placeholder="0.00">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="category">Category</label>
+                                    <select id="category" name="category" required>
+                                        <option value="" disabled>Set a Category</option>
+                                        <option value="Salary" style="color: #9C27B0;">Salary</option>
+                                        <option value="custom">+ Add Custom Category</option>
+                                    </select>
+                                    <input type="text" id="customCategory" name="customCategory" placeholder="Enter custom category" style="display: none;">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="type">Type</label>
+                                    <div class="radio-group">
+                                        <label class="radio-label">
+                                            <input type="radio" name="type" value="income" required>
+                                            <span class="radio-custom"></span>
+                                            <span>Income</span>
+                                        </label>
+                                        <label class="radio-label">
+                                            <input type="radio" name="type" value="expense" required>
+                                            <span class="radio-custom"></span>
+                                            <span>Expense</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn-primary">
+                                <span>Add Transaction</span>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Chart Section -->
+                <div class="chart-section">
+                    <div class="card">
+                        <div class="chart-header">
+                            <h2 class="card-title">Spending Breakdown</h2>
+                            <select id="timeFilter" class="filter-dropdown">
+                                <option value="full">Full Month</option>
+                                <option value="week1">Week 1</option>
+                                <option value="week2">Week 2</option>
+                                <option value="week3">Week 3</option>
+                                <option value="week4">Week 4</option>
+                            </select>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="spendingChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Daily Spending Chart -->
+            <section class="daily-chart-section">
+                <div class="card">
+                    <h2 class="card-title">Daily Spending Trends</h2>
+                    <div class="chart-container">
+                        <canvas id="dailyChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Yearly Progress Map -->
+            <section class="yearly-section">
+                <div class="card">
+                    <h2 class="card-title">Yearly Savings Progress</h2>
+                    <div class="chart-container">
+                        <canvas id="yearlyChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Recent Transactions -->
+            <section class="transactions-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Recent Transactions</h2>
+                        <div class="header-actions">
+                            <button id="toggleBin" class="btn-secondary">Recycle Bin</button>
+                            <button id="clearAll" class="btn-secondary">Clear All</button>
+                        </div>
+                    </div>
+                    <div class="transactions-list" id="transactionsList">
+                        <div class="empty-state">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 14l2 2 4-4"/>
+                                <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <p>No transactions yet</p>
+                            <p class="empty-subtitle">Add your first transaction to get started</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Recycle Bin Section (Hidden by default) -->
+            <section class="bin-section" id="binSection" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Recycle Bin</h2>
+                        <button id="toggleTransactions" class="btn-secondary">Back to Transactions</button>
+                    </div>
+                    <div class="transactions-list" id="binList">
+                        <div class="empty-state">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                            <p>Recycle Bin is empty</p>
+                            <p class="empty-subtitle">Deleted items will appear here for 7 days</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <h3 id="modalTitle">Confirm Action</h3>
+            <p id="modalMessage">Are you sure you want to proceed?</p>
+            <div class="modal-actions">
+                <button id="modalCancel" class="btn-secondary">Cancel</button>
+                <button id="modalConfirm" class="btn-primary">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <h3>Edit Transaction</h3>
+            <form id="editForm">
+                <div class="form-group">
+                    <label for="editDescription">Description</label>
+                    <input type="text" id="editDescription" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" id="editCancel" class="btn-secondary">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">
+        <span id="toastMessage"></span>
+    </div>
+
+    <!-- Financial Danger Zone Alert -->
+    <div id="dangerAlert" class="danger-alert">
+        <div class="danger-alert-content">
+            <div class="danger-alert-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z"/>
+                </svg>
+            </div>
+            <div class="danger-alert-text">
+                <strong>Financial Warning!</strong>
+                <span id="dangerMessage">You are about to finish your salary!</span>
+            </div>
+            <button id="closeDangerAlert" class="danger-alert-close">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
